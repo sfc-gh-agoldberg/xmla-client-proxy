@@ -43,9 +43,9 @@ class ProxyService(ThreadingHTTPServer):
     def __init__(self, 
             forwardingHost: Optional[str] = os.environ.get(ENV_XMLA_CLIENT_PROXY_HOST), 
             port: int = int(os.environ.get(ENV_XMLA_CLIENT_PROXY_PORT,DEFAULT_PORT)), 
-            doLogging: bool = bool(os.environ.get(ENV_XMLA_CLIENT_LOGGING, DEFAULT_LOGGING)),
-            logToConsole: bool = bool(os.environ.get(ENV_XMLA_CLIENT_LOG_TO_CONSOLE,DEFAULT_LOG_TO_CONSOLE)),
-            logMessages: bool = bool(os.environ.get(ENV_XMLA_CLIENT_PROXY_LOG_MESSAGES,DEFAULT_LOG_MESSAGE_CONTENT)),
+            doLogging: bool = str(os.environ.get(ENV_XMLA_CLIENT_LOGGING, DEFAULT_LOGGING)).strip().lower() == "true",
+            logToConsole: bool = str(os.environ.get(ENV_XMLA_CLIENT_LOG_TO_CONSOLE,DEFAULT_LOG_TO_CONSOLE)).strip().lower() == "true",
+            logMessages: bool = str(os.environ.get(ENV_XMLA_CLIENT_PROXY_LOG_MESSAGES,DEFAULT_LOG_MESSAGE_CONTENT)).strip().lower() == "true",
             logLevel = int(os.environ.get(ENV_XMLA_CLIENT_PROXY_LOG_LEVEL,DEFAULT_LOG_LEVEL)),
             logFileName: str = os.environ.get(ENV_XMLA_CLIENT_PROXY_LOG_FILE,DEFAULT_LOG_FILE),
             hostname: str = os.environ.get(ENV_XMLA_CLIENT_PROXY_BIND, DEFAULT_BIND)):
@@ -55,13 +55,14 @@ class ProxyService(ThreadingHTTPServer):
         self.__logger = logger
         self.__logger.setLevel(level=logLevel)
         self.__doLogging = doLogging
+        self.__logToConsole = logToConsole
 
 		# set the logger handlers
-        if (logToConsole == True):
+        if (self.__logToConsole == True):
             consoleHandler = logging.StreamHandler(sys.stdout)
             consoleHandler.setLevel(self.__logger.level)
             self.__logger.addHandler(consoleHandler)
-            
+        
         logHandler = logging.FileHandler(logFileName)
         self.__logger.addHandler(logHandler)
 
@@ -116,7 +117,10 @@ class ProxyService(ThreadingHTTPServer):
 
     def server_activate(self):
         super().server_activate()		
-        self.LogInfo("XMLA Client Proxy Service is Ready!")
+        self.LogInfo("XMLA Client Proxy Service is Running!")
+        if self.__logToConsole != True:
+            print("XMLA Client Proxy Service is Running!")
+        print("Hit Control+C to stop")
 		
     def GetRequestId(self):
         self.__requestId = self.__requestId + 1
