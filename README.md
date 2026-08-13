@@ -12,7 +12,7 @@ reachable host on the LAN.
 
 If you are using Parallels, the proxy can run either inside the
 Windows VM or on the host Mac — it binds to all interfaces by default
-when `CLIENT_PROXY_BIND=0.0.0.0` is set (see below).
+when `XMLA_CLIENT_PROXY_BIND=0.0.0.0` is set (see below).
 
 ## Prerequisites
 
@@ -70,9 +70,8 @@ python3 -u src\xmlaClientProxy.py
 You should see:
 
 ```
-… INFO  root  STARTING UP
-… INFO  root  Starting proxy server on http://0.0.0.0:8000 forwarding messages to <your-snowflake-service-url>
-… INFO  root  Proxy Service is Ready!
+XMLA Client Proxy Service is Running!
+Hit Control+C to stop
 ```
 
 ## Connect from Power BI Desktop
