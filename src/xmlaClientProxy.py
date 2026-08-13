@@ -39,6 +39,8 @@ def main():
     service.Start()
 
 class ProxyService(ThreadingHTTPServer):
+    """ProxyService Class is an HTTP Server which intercepts messages from XMLA Client, inserts authentication header and 
+    forwards the message on to the XMLA Endpoint"""
     def __init__(self, 
             forwardingHost: Optional[str] = os.environ.get(ENV_XMLA_CLIENT_PROXY_HOST), 
             port: int = int(os.environ.get(ENV_XMLA_CLIENT_PROXY_PORT,DEFAULT_PORT)), 
@@ -47,12 +49,11 @@ class ProxyService(ThreadingHTTPServer):
             logMessages: bool = bool(os.environ.get(ENV_XMLA_CLIENT_PROXY_LOG_MESSAGES,DEFAULT_LOG_MESSAGE_CONTENT)),
             logLevel = int(os.environ.get(ENV_XMLA_CLIENT_PROXY_LOG_LEVEL,DEFAULT_LOG_LEVEL)),
             logFileName: str = os.environ.get(ENV_XMLA_CLIENT_PROXY_LOG_FILE,DEFAULT_LOG_FILE),
-            sslCrtFile: Optional[str] = None,#os.path.join(currentPath,"localhost.crt"),
-            sslKeyFile: Optional[str] = None, #os.path.join(currentPath,"localhost.key"),
             hostname: str = os.environ.get(ENV_XMLA_CLIENT_PROXY_BIND, DEFAULT_BIND)):
-
+        """ProxyService Class Constructor, defaults all parameters to environment variable values (or defaults if environment var is not set)
+        """
+    
         self.__logger = logger
-        self.__isSSL = False
         self.__logger.setLevel(level=logLevel)
         self.__doLogging = doLogging
 
@@ -82,15 +83,6 @@ class ProxyService(ThreadingHTTPServer):
         if len(errors) > 0:
             raise ValueError("\n".join(errors))
             
-        if sslCrtFile is not None:
-            if not os.path.exists(sslCrtFile):
-                raise ValueError(f"Invalid sslCrtFile: {sslCrtFile} does not exist")
-        if sslKeyFile is not None:
-            if not os.path.exists(sslKeyFile):
-                raise ValueError(f"Invalid sslKeyFile: {sslKeyFile} does not exist")
-            
-        self.__sslCrtFile = sslCrtFile
-        self.__sslKeyFile = sslKeyFile
         self.__hostname = hostname
         self.__forwardingHost = forwardingHost
         self.__requestId = 0
@@ -98,10 +90,6 @@ class ProxyService(ThreadingHTTPServer):
         self.__logMessages = logMessages
 
         super().__init__(server_address=(self.Hostname, self.Port), RequestHandlerClass=MessageHandler, bind_and_activate=False)
-                
-    @property
-    def IsSSL(self):
-        return self.__isSSL
 
     @property
     def DoLogging(self):
@@ -127,17 +115,6 @@ class ProxyService(ThreadingHTTPServer):
     def LogMessages(self):
         return self.__logMessages
 
-    def server_bind(self) -> None:
-        super().server_bind()
-        if self.__sslCrtFile is not None:
-            self.LogInfo(f"Wrapping socket with SSL using CrtFile: {self.__sslCrtFile} and KeyFile: {self.__sslKeyFile}")
-            sslContext = ssl.SSLContext(ssl.PROTOCOL_TLS_SERVER)
-            sslContext.check_hostname = False
-            sslContext.verify_mode = ssl.CERT_NONE
-            sslContext.load_cert_chain(certfile=self.__sslCrtFile, keyfile=self.__sslKeyFile)
-            self.socket = sslContext.wrap_socket(self.socket, server_side=True)
-            self.__isSSL = True
-
     def server_activate(self):
         super().server_activate()		
         self.LogInfo("XMLA Client Proxy Service is Ready!")
@@ -153,12 +130,10 @@ class ProxyService(ThreadingHTTPServer):
 
     def Start(self):
         self.LogInfo("XMLA Client Proxy Service Starting Up")
+
         # Create and run the HTTP server
-        
         self.server_bind()
         protocol = "http"
-        if self.IsSSL:
-            protocol = "https"
 
         self.LogInfo(f"Starting XMLA Client Proxy Service on {protocol}://{self.Hostname}:{self.Port} forwarding messages to {self.ForwardingHost}")
         
@@ -178,13 +153,16 @@ class ProxyService(ThreadingHTTPServer):
 
     def GetAuthorizationHeaderValue(self):
         authorizationHeader: Optional[str] = None
+        # pull the values from the environment variables
         username: Optional[str] = os.environ.get(ENV_XMLA_CLIENT_PROXY_USERNAME)
         password: Optional[str] = os.environ.get(ENV_XMLA_CLIENT_PROXY_PASSWORD)
         if (username is not None and password is not None):
+            # create the Authorization header value
             token = base64.b64encode(f"{username}:{password}".encode()).decode()
             authorizationHeader = f"Basic {token}"
         return authorizationHeader
 
+    # logging methods
     def Log(self, level: str, msg: str):
         if self.__doLogging:
             if level == "info":
@@ -204,6 +182,7 @@ class ProxyService(ThreadingHTTPServer):
         self.Log("debug", msg)
             
 class MessageHandler(BaseHTTPRequestHandler):
+    """MessageHandler Class is a HTTPRequestHandler used by the ProxyService to perform the message intercept and proxy behavior"""
     protocol_version = "HTTP/1.1"
 
     def __init__(self, request, client_address, server: ProxyService):
@@ -295,12 +274,8 @@ class MessageHandler(BaseHTTPRequestHandler):
             self.__body = None
             self.__processedMessage = False
         return True
-        #response = self.ProxyMessage(is100Continue=True)
-        #self.SendResponse(response) 
-        #if response is not None and response.status_code < 400: 
-        #    return True       
-        #return False
 
+    # http function overrides (they all do the same thing - ProxyMessage using the right request function)
     def do_GET(self):
         response = self.ProxyMessage()
         self.SendResponse(response)
@@ -336,6 +311,10 @@ class MessageHandler(BaseHTTPRequestHandler):
         return request_function
 
     def ProxyMessage(self):
+        """ProxyMessage takes the message from the XMLA Client, inserts the Authorization header and sends it to the XMLA Endpoint
+           then returns the response to the XMLA Client
+        """
+        # the HTTP Request Handler can be reused, this makes sure it is running with clean state
         if self.__processedMessage == True:
             newRequestId = self.Parent.GetRequestId()
             self.LogDebug(f"Recycling Message Handler {self.RequestId}->{newRequestId}")
@@ -346,8 +325,6 @@ class MessageHandler(BaseHTTPRequestHandler):
         requestBodyBytes: Optional[bytes] = None
         requestBodyString: Optional[str] = None
         
-        type = "REQUEST"
-
         # force the authentication header to use the environment user/password
         authorizationHeaderValue = self.Parent.GetAuthorizationHeaderValue()
         if authorizationHeaderValue is not None:
@@ -361,9 +338,9 @@ class MessageHandler(BaseHTTPRequestHandler):
                 requestBodyString = requestBodyBytes.decode(errors="ignore").replace("\n","").replace("\r","").replace("\t","")
             else:
                 requestBodyString = ""
-            self.LogInfo(f'{self.RequestId}\t{type}\t{self.command}\t{self.path}\t{self.client_address}\t{self._redactHeadersForLog(dict(self.headers))}\t{requestBodyString}')
+            self.LogInfo(f'{self.RequestId}\tREQUEST\t{self.command}\t{self.path}\t{self.client_address}\t{self._redactHeadersForLog(dict(self.headers))}\t{requestBodyString}')
         else:
-            self.LogInfo(f'{self.RequestId}\t{type}\t{self.command}\t{self.path}\t{self.client_address}\t{self._redactHeadersForLog(dict(self.headers))}\t')
+            self.LogInfo(f'{self.RequestId}\tREQUEST\t{self.command}\t{self.path}\t{self.client_address}\t{self._redactHeadersForLog(dict(self.headers))}\t')
         
         response: Optional[requests.Response] = None
         headers = {}
@@ -385,10 +362,10 @@ class MessageHandler(BaseHTTPRequestHandler):
         
         if request_function is not None:
             if self.LogMessages and len(requestBodyString or "") > 0:
-                self.LogDebug(f"{self.RequestId}\tPROXY {type} TO {forwardUrl}\t{self.command}\t{self.path}\t{self.client_address}\t{self._redactHeadersForLog(dict(headers))}\t{requestBodyString}")
+                self.LogDebug(f"{self.RequestId}\tPROXY REQUEST TO {forwardUrl}\t{self.command}\t{self.path}\t{self.client_address}\t{self._redactHeadersForLog(dict(headers))}\t{requestBodyString}")
             else:               
-                self.LogDebug(f"{self.RequestId}\tPROXY {type} TO {forwardUrl}\t{self.command}\t{self.path}\t{self.client_address}\t{self._redactHeadersForLog(dict(headers))}\t")
-    
+                self.LogDebug(f"{self.RequestId}\tPROXY REQUEST TO {forwardUrl}\t{self.command}\t{self.path}\t{self.client_address}\t{self._redactHeadersForLog(dict(headers))}\t")
+            # proxy call, using the correct request function
             response = request_function(forwardUrl, data=requestBodyBytes, headers=headers)
         else:
             response = None
