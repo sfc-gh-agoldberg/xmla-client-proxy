@@ -2,7 +2,6 @@ import os
 import sys
 import base64
 import logging
-import ssl
 from typing import Optional
 from http.server import ThreadingHTTPServer
 from http.server import BaseHTTPRequestHandler
