@@ -167,7 +167,14 @@ class ProxyService(ThreadingHTTPServer):
         except Exception as e:
             self.LogError(f"Failure starting the XMLA Client Proxy Service: {e}")
             return
-        self.serve_forever()
+        try:
+            self.serve_forever()
+        except KeyboardInterrupt:
+            self.LogInfo(f"XMLA Client Proxy Service: shutting down")
+            try:
+                sys.exit(130)
+            except SystemExit:
+                os._exit(130)
 
     def GetAuthorizationHeaderValue(self):
         authorizationHeader: Optional[str] = None
@@ -445,6 +452,7 @@ class MessageHandler(BaseHTTPRequestHandler):
 
     def LogDebug(self, msg: str):
         self.Log("debug", msg)
+
 if __name__ == '__main__':
     try:
         main()
