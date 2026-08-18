@@ -369,7 +369,7 @@ class MessageHandler(BaseHTTPRequestHandler):
             else:               
                 self.LogDebug(f"{self.RequestId}\tPROXY REQUEST TO {forwardUrl}\t{self.command}\t{self.path}\t{self.client_address}\t{self._redactHeadersForLog(dict(headers))}\t")
             # proxy call, using the correct request function
-            response = request_function(forwardUrl, data=requestBodyBytes, headers=headers)
+            response = request_function(forwardUrl, data=requestBodyBytes, headers=headers, verify=False)
         else:
             response = None
 
