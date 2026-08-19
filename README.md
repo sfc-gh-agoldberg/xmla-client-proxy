@@ -51,7 +51,7 @@ pip install -r requirements.txt
 cd src
 XMLA_CLIENT_PROXY_HOST=<your-snowflake-service-url> (do not include https://)
 XMLA_CLIENT_USERNAME=<your-snowflake-username> 
-XMLA_CLIENT_USERNAME=<your-snowflake-pat> 
+XMLA_CLIENT_PASSWORD=<your-snowflake-pat> 
 python3 -u src/xmlaClientProxy.py
 ```
 ### Windows Cmd (venv-based)
@@ -63,7 +63,7 @@ python -m venv .venv
 pip install -r .\requirements.txt
 set XMLA_CLIENT_PROXY_HOST=<your-snowflake-service-url> # do not include https://
 set XMLA_CLIENT_USERNAME=<your-snowflake-username> 
-set XMLA_CLIENT_USERNAME=<your-snowflake-pat> 
+set XMLA_CLIENT_PASSWORD=<your-snowflake-pat> 
 python3 src\xmlaClientProxy.py
 ```
 
@@ -76,7 +76,7 @@ python -m venv .venv
 pip install -r .\requirements.txt
 $env:XMLA_CLIENT_PROXY_HOST=<your-snowflake-service-url> #do not include https://
 $env:XMLA_CLIENT_USERNAME=<your-snowflake-username> 
-$env:XMLA_CLIENT_USERNAME=<your-snowflake-pat> 
+$env:XMLA_CLIENT_PASSWORD=<your-snowflake-pat> 
 python3 src\xmlaClientProxy.py
 ```
 
