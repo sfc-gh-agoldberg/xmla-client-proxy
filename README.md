@@ -18,8 +18,8 @@ when `XMLA_CLIENT_PROXY_BIND=0.0.0.0` is set (see below).
 ## Prerequisites
 
 - Python 3.9 or newer.
-- Install the single small dependencies: `pip install -r requirements.txt`
-  (installs `requests`; add `--user` on a system Python).
+- Install the dependencies: `pip install -r requirements.txt`
+  (installs `requests` component).
 
 ## Environment variables
 
@@ -56,12 +56,12 @@ python3 -u src/xmlaClientProxy.py
 ```
 ### Windows Cmd (venv-based)
 
-```cmd
+```bat
 cd xmla-client-proxy
 python -m venv .venv
 .\.venv\Scripts\Activate  
 pip install -r .\requirements.txt
-set XMLA_CLIENT_PROXY_HOST=<your-snowflake-service-url> (do not include https://)
+set XMLA_CLIENT_PROXY_HOST=<your-snowflake-service-url> # do not include https://
 set XMLA_CLIENT_USERNAME=<your-snowflake-username> 
 set XMLA_CLIENT_USERNAME=<your-snowflake-pat> 
 python3 src\xmlaClientProxy.py
@@ -74,10 +74,10 @@ cd xmla-client-proxy
 python -m venv .venv
 .\.venv\Scripts\Activate.ps1   # may need: Set-ExecutionPolicy -ExecutionPolicy RemoteSigned -Scope Process
 pip install -r .\requirements.txt
-$env:XMLA_CLIENT_PROXY_HOST=<your-snowflake-service-url> (do not include https://)
+$env:XMLA_CLIENT_PROXY_HOST=<your-snowflake-service-url> #do not include https://
 $env:XMLA_CLIENT_USERNAME=<your-snowflake-username> 
 $env:XMLA_CLIENT_USERNAME=<your-snowflake-pat> 
-python3 -u src\xmlaClientProxy.py
+python3 src\xmlaClientProxy.py
 ```
 
 You should see:
